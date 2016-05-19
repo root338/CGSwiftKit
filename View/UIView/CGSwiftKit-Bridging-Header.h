@@ -7,6 +7,10 @@
 #define CGSwiftKit_Bridging_Header_h
 
 #import "CGBaseViewController.h"
+
 #import "UIView+CGAddConstraints.h"
+#import "UIView+CGUpdateConstraints.h"
+
+#import "UIView+CGSetupFrame.h"
 
 #endif
