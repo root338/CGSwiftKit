@@ -9,7 +9,6 @@
 #import "CGBaseViewController.h"
 
 #import "UIView+CGAddConstraints.h"
-#import "UIView+CGUpdateConstraints.h"
 
 #import "UIView+CGSetupFrame.h"
 
