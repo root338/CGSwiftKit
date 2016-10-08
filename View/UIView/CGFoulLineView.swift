@@ -14,7 +14,7 @@ enum CGFoulLineSType : Int {
     case Top, Left, Right, Bottom
 };
 
-struct CGFoulLineType : OptionSetType {
+struct CGFoulLineType : OptionSet {
     
     let rawValue: Int
     init(rawValue: Int) { self.rawValue = rawValue }
@@ -71,7 +71,7 @@ class CGFoulLineView : UIView {
     override init(frame: CGRect) {
         
         foulLineType        = .None
-        lineHeight          = 1 / max(UIScreen.mainScreen().scale, 1)
+        lineHeight          = 1 / max(UIScreen.main.scale, 1)
 //        foulLineEdgeInsets  = UIEdgeInsetsZero
         contentView         = UIView.init(frame: frame)
         super.init(frame: frame)
@@ -116,14 +116,14 @@ class CGFoulLineView : UIView {
                 
                 isAddLineView   = self.foulLineType.contains(foulLineType)
             }
-            self.setupFoulLineView(lineType, isAddLineView: isAddLineView)
+            self.setupFoulLineView(foulLineType: lineType, isAddLineView: isAddLineView)
         }
         self.setupFoulLineViewLayout()
     }
     
     func setupFoulLineViewLayout() {
         
-        var contentEdgeInsets   = UIEdgeInsetsZero
+        var contentEdgeInsets   = UIEdgeInsets.zero
         let width               = self.bounds.size.width
         let height              = self.bounds.size.height
         let lineHeight          = self.lineHeight
@@ -138,25 +138,30 @@ class CGFoulLineView : UIView {
                     case .Top:
                         
                         contentEdgeInsets.top       = lineHeight
-                        frame   = CGRectMake(0, 0, width, lineHeight)
+                        frame   = CGRect(x: 0, y: 0, width: width, height: lineHeight)
                     case .Left:
                         
                         contentEdgeInsets.left      = lineHeight
-                        frame   = CGRectMake(0, 0, lineHeight, height)
+                        frame   = CGRect(x: 0, y: 0, width: lineHeight, height: height)
                     case .Bottom:
                         
                         contentEdgeInsets.bottom    = lineHeight
-                        frame   = CGRectMake(0, height - lineHeight, width, lineHeight)
+                        frame   = CGRect(x: 0, y: height - lineHeight, width: width, height: lineHeight)
                     case .Right:
                         
                         contentEdgeInsets.right     = lineHeight
-                        frame   = CGRectMake(width - lineHeight, 0, lineHeight, height)
+                        frame   = CGRect(x: width - lineHeight, y: 0, width: lineHeight, height: height)
                     }
                     lineView.frame  = frame
                 }
             }
         }
-        self.contentView.frame  = CGRectMake(contentEdgeInsets.left, contentEdgeInsets.top, width - (contentEdgeInsets.left + contentEdgeInsets.right), height - (contentEdgeInsets.top + contentEdgeInsets.bottom))
+        
+        let originX     = contentEdgeInsets.left
+        let originY     = contentEdgeInsets.top
+        let sizeWidth   = width - (contentEdgeInsets.left + contentEdgeInsets.right)
+        let sizeHeight  = height - (contentEdgeInsets.top + contentEdgeInsets.bottom)
+        self.contentView.frame  = CGRect(x: originX, y: originY, width: sizeWidth, height: sizeHeight);
     }
     
     override func layoutSubviews() {
@@ -203,7 +208,7 @@ class CGFoulLineView : UIView {
     //创建线视图
     func createLineView() -> UIView {
         
-        let frame   = CGRectMake(0, 0, 0, self.lineHeight)
+        let frame   = CGRect(x: 0, y: 0, width: 0, height: self.lineHeight)
         let view    = UIView(frame: frame)
         view.backgroundColor    = self.foulLineColor
         return view
