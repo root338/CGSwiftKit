@@ -36,7 +36,7 @@ public enum CGBrowseViewIndexType : Int {
     func browseContent(_ browseContent : CGBrowseView, index : Int) -> CGBrowseViewCell
     
     
-    /// 浏览视图的总数，循环条件下可以不实现，非循环条件下必须实现
+    /// 浏览视图的总数
     @objc func totalNumberWithBrowseContent(_ browseContent : CGBrowseView) -> Int
 }
 
@@ -64,9 +64,27 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
     var currentStartIndex = 0
     
     /// cell 的宽度，在水平滑动下设置
-    var cellWidth : CGFloat = 0
+    var cellWidth : CGFloat = 0 {
+        willSet {
+            if autoSetupCellWidthFlag == false {
+                disableSetupPrivateCellWidthFlag    = true
+            }
+        }
+        didSet {
+            autoSetupCellWidthFlag  = false
+        }
+    }
     /// cell 的高度，在垂直滑动下设置
-    var cellHeight : CGFloat = 0
+    var cellHeight : CGFloat = 0 {
+        willSet {
+            if autoSetupCellHeightFlag == false {
+                disableSetupPrivateCellHeightFlag   = true
+            }
+        }
+        didSet {
+            autoSetupCellHeightFlag = false
+        }
+    }
     
     /// cell之间的最小间距，默认 0
     var minimumInteritemSpacing : CGFloat = 0
@@ -88,19 +106,36 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
     
     /// 记录上一次偏移的坐标
     fileprivate var offsetPoint    : CGPoint?
+    
     /// 可见的 cell 数组
     fileprivate var visibleBrowseCells : [Int : CGBrowseViewCell] = [:]
     /// 可见的 cell 的内容大小
     fileprivate var visibleBrowseContentSize = CGSize.zero
+    /// 可见的 cell 索引数组
+    fileprivate var visibleBrowseCellIndexs : [Int] = []
+    /// 缓存的 cell 集合
+    fileprivate var cacheBrowseCells : [String : [CGBrowseViewCell]] = [:]
+    /// 当前手势滑动的偏移量
+    fileprivate var currentScrollContentOffset = CGPoint.zero
     
-    // 调用 reloadData 进行 contentView 刷新时的必须条件
+    /// cell 加载的总数
+    fileprivate var totalForCellsNumber : Int   = 0
+    
+    /// 禁止根据contentView自定义cell宽度的变化，即用户自定义cell的宽度
+    fileprivate var disableSetupPrivateCellWidthFlag    = false
+    /// 禁止根据contentView自定义cell高度的变化，即用户自定义cell的高度
+    fileprivate var disableSetupPrivateCellHeightFlag   = false
+    /// 自动设置cell宽度的标识
+    fileprivate var autoSetupCellWidthFlag              = false
+    /// 自动设置cell高度的标识
+    fileprivate var autoSetupCellHeightFlag             = false
+    
+    /// 调用 reloadData 进行 contentView 刷新时的必须条件
     fileprivate var reloadDataMustCondition : Bool {
         get {
             return self.dataSource != nil && self.contentView.width > 0 && self.contentView.height > 0
         }
     }
-    
-    fileprivate var totalForCellsNumber : Int   = 0
     
     /// 自动刷新视图的条件
     fileprivate var isAutoReloadDataCondition : Bool {
@@ -147,25 +182,35 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
         if state == .began {
             
             self.offsetPoint   = point
-        } else if state == .changed || state == .ended {
+        } else if state == .changed {
             
             self.moveContentViewLayout(contentOffset: CGPoint.init(x: point.x - self.offsetPoint!.x, y: 0))
             self.offsetPoint   = point
         } else if state == .failed || state == .cancelled {
             
             self.resetContentViewLayout()
+        } else if state == .ended {
+//            self.endMoveContentViewLayout(contentOffset: , velocity: <#T##CGFloat#>)
         }
     }
     
-    //移动contentView 内容
+    /// 手势移动时，调用
     func moveContentViewLayout(contentOffset: CGPoint) {
         
-        for subview in self.contentView.subviews {
-            subview.xOrigin += contentOffset.x;
+        self.currentScrollContentOffset.x += contentOffset.x
+        self.currentScrollContentOffset.y += contentOffset.y
+        
+        if self.browseViewDirection == .Horizontal {
+            
         }
     }
     
-    //还原 content View 内容
+    /// 手势正常结束时，调用
+    func endMoveContentViewLayout(contentOffset: CGPoint, velocity: CGFloat) {
+        
+    }
+    
+    /// 手势中途结束时，调用
     func resetContentViewLayout() {
         
     }
@@ -180,6 +225,7 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
         }
         self.totalForCellsNumber    = self.dataSource!.totalNumberWithBrowseContent(self)
         self.setupContentView()
+        self.currentScrollContentOffset = CGPoint.zero
     }
     
     fileprivate func setReloadData() {
@@ -238,7 +284,9 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
                 contentSize.height  += cell.height + interitemSpacing
             }
             
-            self.contentView.addSubview(cell)
+            if cell.superview != self.contentView {
+                self.contentView.addSubview(cell)
+            }
             
             let nextIndex = self.setupCellIndex(index: index, indexType: .NextIndex)
             
@@ -247,15 +295,25 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
             }
             index   = nextIndex!
             
-        } while (self.browseViewDirection == .Horizontal && contentSize.width > self.contentView.width) || (self.browseViewDirection == .Vertical && contentSize.height > self.contentView.height)
+        } while (self.browseViewDirection == .Horizontal && contentSize.width < self.contentView.width) || (self.browseViewDirection == .Vertical && contentSize.height < self.contentView.height)
+        
+        if self.browseViewDirection == .Horizontal {
+            contentSize.height  = self.contentView.height
+        }else if self.browseViewDirection == .Vertical {
+            contentSize.width   = self.contentView.width
+        }
+        
+        self.visibleBrowseContentSize   = contentSize
     }
     
     func createCell(cellIndex : Int) -> CGBrowseViewCell {
         
         var view = visibleBrowseCells[cellIndex]
         if view == nil {
+            
             view    = self.dataSource!.browseContent(self, index: cellIndex)
             visibleBrowseCells[cellIndex]   = view
+            visibleBrowseCellIndexs.append(cellIndex)
         }
         var viewSize = CGSize.zero
         if self.browseViewDirection == .Horizontal {
@@ -284,8 +342,14 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
         
         super.layoutSubviews()
         
-        self.cellWidth  = self.contentView.width
-        self.cellHeight = self.contentView.height
+        if self.disableSetupPrivateCellWidthFlag == false {
+            autoSetupCellWidthFlag  = true
+            self.cellWidth  = self.contentView.width
+        }
+        if self.disableSetupPrivateCellHeightFlag {
+            autoSetupCellHeightFlag = true
+            self.cellHeight = self.contentView.height
+        }
         
         self.setReloadData()
     }
