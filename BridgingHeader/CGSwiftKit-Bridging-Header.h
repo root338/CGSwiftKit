@@ -19,4 +19,7 @@
 //添加内容
 #import "UIView+CGAddGestureRecognizer.h"
 
+//设备方向判断
+#import "UIApplication+CGVerifyDeviceDirection.h"
+
 #endif

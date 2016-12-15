@@ -89,7 +89,7 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
     /// cell之间的最小间距，默认 0
     var minimumInteritemSpacing : CGFloat = 0
     
-    /// 是否可以循环滑动，默认 NO
+    /// 是否可以循环滑动，默认
     var isCycle = true
     
     /// 浏览视图滑动的方向，默认水平滑动
@@ -129,6 +129,8 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
     fileprivate var autoSetupCellWidthFlag              = false
     /// 自动设置cell高度的标识
     fileprivate var autoSetupCellHeightFlag             = false
+    /// 视图加载时设备的方向
+    fileprivate var deviceOrientationFlag               = UIApplication.cg_currentDeviceDirection()
     
     /// 调用 reloadData 进行 contentView 刷新时的必须条件
     fileprivate var reloadDataMustCondition : Bool {
@@ -150,6 +152,12 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
                 
                 visibleCellsContentSizeLessContentViewSize  = visibleBrowseContentSize.height < self.contentView.width
             }
+            
+            let currentDeviceOrientation = UIApplication.cg_currentDeviceDirection()
+            if self.reloadDataMustCondition && self.deviceOrientationFlag != currentDeviceOrientation {
+                return true
+            }
+            
             return self.reloadDataMustCondition && self.window != nil && visibleCellsContentSizeLessContentViewSize
         }
     }
@@ -226,6 +234,7 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
         self.totalForCellsNumber    = self.dataSource!.totalNumberWithBrowseContent(self)
         self.setupContentView()
         self.currentScrollContentOffset = CGPoint.zero
+        self.deviceOrientationFlag      = UIApplication.cg_currentDeviceDirection()
     }
     
     fileprivate func setReloadData() {
@@ -266,9 +275,10 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
     /// 设置 contentView 中的视图
     func setupContentView() {
         
-        var index = self.currentStartIndex
-        var contentSize = CGSize.zero
-        let interitemSpacing = self.minimumInteritemSpacing
+        var index                   = self.currentStartIndex
+        var contentSize             = CGSize.zero
+        let interitemSpacing        = self.minimumInteritemSpacing
+        var tempVisibleBrowseCells  = [Int : CGBrowseViewCell]()
         
         repeat {
             
@@ -287,6 +297,8 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
             if cell.superview != self.contentView {
                 self.contentView.addSubview(cell)
             }
+            tempVisibleBrowseCells.updateValue(cell, forKey: index)
+            self.visibleBrowseCells.removeValue(forKey: index)
             
             let nextIndex = self.setupCellIndex(index: index, indexType: .NextIndex)
             
@@ -296,6 +308,14 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
             index   = nextIndex!
             
         } while (self.browseViewDirection == .Horizontal && contentSize.width < self.contentView.width) || (self.browseViewDirection == .Vertical && contentSize.height < self.contentView.height)
+        
+        for (_, value) in self.visibleBrowseCells {
+            if value.superview != nil {
+                value.removeFromSuperview()
+            }
+        }
+        self.visibleBrowseCells.removeAll()
+        self.visibleBrowseCells = tempVisibleBrowseCells
         
         if self.browseViewDirection == .Horizontal {
             contentSize.height  = self.contentView.height
