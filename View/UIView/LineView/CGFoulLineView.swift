@@ -64,7 +64,7 @@ class CGFoulLineView : UIView {
 //        }
 //    }
     
-    let lineHeight              : CGFloat
+    var lineHeight              : CGFloat
     let contentView             : UIView
     private var lineViews       : Dictionary<CGFoulLineSType, UIView>?
     
@@ -80,10 +80,13 @@ class CGFoulLineView : UIView {
         
     }
     
-    convenience init(frame: CGRect, foulLineType: CGFoulLineType) {
+    convenience init(frame: CGRect, foulLineType: CGFoulLineType, lineHeight: CGFloat, lineColor: UIColor) {
         
         self.init(frame: frame)
+        
         self.foulLineType   = foulLineType
+        self.lineHeight     = lineHeight
+        self.foulLineColor  = lineColor
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -92,6 +95,8 @@ class CGFoulLineView : UIView {
     
     
     func setUpdateView() {
+        
+        
         
         let foulLineTypeArray : [CGFoulLineSType] = [.Top, .Left, .Right, .Bottom]
         for lineType in foulLineTypeArray {

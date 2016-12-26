@@ -90,7 +90,7 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
     var minimumInteritemSpacing : CGFloat = 0
     
     /// 是否可以循环滑动，默认
-    var isCycle = true
+    var isScrollLoop = true
     
     /// 浏览视图滑动的方向，默认水平滑动
     var browseViewDirection = CGBrowseScrollDirection.Horizontal
@@ -246,32 +246,6 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
         }
     }
     
-    /// 对索引进行设置
-    func setupCellIndex(index : Int, indexType : CGBrowseViewIndexType) -> Int? {
-        
-        var paramIndex : Int?
-        if indexType == .PreviousIndex {
-            paramIndex  = index - 1
-            if paramIndex! < 0 {
-                if self.isCycle {
-                    paramIndex  = min(self.totalForCellsNumber - 1, 0)
-                }else {
-                    paramIndex  = nil
-                }
-            }
-        }else {
-            paramIndex  = index + 1
-            if paramIndex! >= self.totalForCellsNumber {
-                if self.isCycle {
-                    paramIndex  = self.totalForCellsNumber > 0 ? 0 : nil
-                }else {
-                    paramIndex  = nil
-                }
-            }
-        }
-        return paramIndex
-    }
-    
     /// 设置 contentView 中的视图
     func setupContentView() {
         
@@ -300,7 +274,7 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
             tempVisibleBrowseCells.updateValue(cell, forKey: index)
             self.visibleBrowseCells.removeValue(forKey: index)
             
-            let nextIndex = self.setupCellIndex(index: index, indexType: .NextIndex)
+            let nextIndex = index.number(in: .next, isCycle: isScrollLoop, minNumber: 0, maxNumber: totalForCellsNumber)
             
             if nextIndex == nil {
                 break

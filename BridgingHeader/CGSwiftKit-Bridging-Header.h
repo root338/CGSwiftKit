@@ -12,6 +12,10 @@
 #import "CGBaseViewController.h"
 
 #pragma mark - UIKit 扩展
+
+//常量
+#import "UIView+Constant.h"
+
 //布局设置
 #import "UIView+CGSetupFrame.h"
 #import "UIView+CGAddConstraints.h"
@@ -21,5 +25,7 @@
 
 //设备方向判断
 #import "UIApplication+CGVerifyDeviceDirection.h"
+
+
 
 #endif
