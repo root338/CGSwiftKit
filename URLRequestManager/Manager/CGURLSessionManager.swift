@@ -8,35 +8,29 @@
 
 import UIKit
 
-typealias CGURLSessionSuccessBlock      = (_ taskDataModel: CGTaskDataModel) -> Void
-typealias CGURLSessionFailureBlock      = CGURLSessionSuccessBlock
-typealias CGURLSessionCompletionBlock   = CGURLSessionSuccessBlock
-
-enum CGURLSessionTaskType : Int {
-    
-    case data
-    case upload
-    case download
-    
-    case stream
-}
-
 @available(iOS 7.0, *)
 class CGURLSessionManager: NSObject {
     
     static let sessionManager = CGURLSessionManager.init()
     
+    let configuration : CGURLSessionManagerConfiguration
+    
     private let session : URLSession
     
-    override init() {
+    override convenience init() {
+        self.init(configuration:CGURLSessionManagerConfiguration.init())
+    }
+    
+    init(configuration: CGURLSessionManagerConfiguration) {
         
-        let configuration = URLSessionConfiguration.default
         let delegate      = CGURLSessionDelegateManager.init()
         let operationQueue = OperationQueue.main
         
+        self.configuration  = configuration
+        
         // URLSession 的 delegate 是强引用
         
-        session = URLSession.init(configuration: configuration, delegate: delegate, delegateQueue: operationQueue)
+        session = URLSession.init(configuration: configuration.sessionConfiguration, delegate: delegate, delegateQueue: operationQueue)
         
         super.init()
         
@@ -55,4 +49,11 @@ class CGURLSessionManager: NSObject {
 //        
 //        
 //    }
+    
+//    func request(model: CGTaskRequestDataModel, completion: @escaping (_ taskDataModel: CGTaskDataModel) -> Void) -> URLSessionTask {
+//        
+//        
+//    }
 }
+
+

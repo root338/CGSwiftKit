@@ -26,6 +26,7 @@
 //设备方向判断
 #import "UIApplication+CGVerifyDeviceDirection.h"
 
-
+//字符串处理
+#import "NSString+VerificationString.h"
 
 #endif
