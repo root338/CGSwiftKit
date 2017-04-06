@@ -86,7 +86,6 @@ class CGURLSessionDelegateManager: NSObject, URLSessionDelegate, URLSessionTaskD
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         
         let taskDataModel   = self.taskManager.getTaskData(sessionTask: task)
-        taskDataModel.error = error
         
         if taskDataModel.data != nil {
             

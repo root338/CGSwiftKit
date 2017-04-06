@@ -43,8 +43,7 @@ class CGURLTaskManager: NSObject {
     //MARK:- 设置 taskDataModel 的 URLResponse
     func setupTaskData(sessionTask: URLSessionTask, response: URLResponse) {
         
-        let taskDataModel       = self.getTaskData(sessionTask: sessionTask)
-        taskDataModel.response = response as? HTTPURLResponse
+        
     }
     
     //MARK:- 设置 taskDataModel 的 data

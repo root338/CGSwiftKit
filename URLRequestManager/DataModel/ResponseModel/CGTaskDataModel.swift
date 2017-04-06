@@ -11,9 +11,14 @@ import UIKit
 class CGTaskDataModel: NSObject {
     
     let task : URLSessionTask
-    var response : HTTPURLResponse?
+    var HTTPResponse : HTTPURLResponse? {
+        if let _HTTPResponse = task.response as? HTTPURLResponse {
+            return _HTTPResponse
+        }else {
+            return nil
+        }
+    }
     var data : Data?
-    var error : Error?
     
     init(task : URLSessionTask) {
         
