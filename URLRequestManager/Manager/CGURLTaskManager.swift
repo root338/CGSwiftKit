@@ -9,7 +9,6 @@
 import UIKit
 
 
-
 class CGURLTaskManager: NSObject {
     
     private var taskList = [Int : CGTaskDataModel]()
