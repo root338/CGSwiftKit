@@ -27,7 +27,7 @@ class CGURLSessionManager: NSObject {
     }
     
     //MARK:- fileprivate 变量
-    fileprivate var delegateList : [CGURLSessionTaskDelegate]?
+//    fileprivate var delegateList : [CGURLSessionTaskDelegate]?
     
     override convenience init() {
         self.init(configuration:CGURLSessionManagerConfiguration.init())
@@ -83,18 +83,18 @@ class CGURLSessionManager: NSObject {
 // MARK: - CGURLSessionManager 协议处理
 extension CGURLSessionManager {
     
-    func addSessionDelegate(delegate: CGURLSessionTaskDelegate) {
-        
-        if delegateList == nil {
-            delegateList = []
-        }
-        delegateList?.append(delegate)
-    }
-    
-    func removeSessionDelegate(delegate: CGURLSessionTaskDelegate) {
-        
-        
-    }
+//    func addSessionDelegate(delegate: CGURLSessionTaskDelegate) {
+//        
+//        if delegateList == nil {
+//            delegateList = []
+//        }
+//        delegateList?.append(delegate)
+//    }
+//    
+//    func removeSessionDelegate(delegate: CGURLSessionTaskDelegate) {
+//        
+//        
+//    }
     
 }
 

@@ -10,6 +10,7 @@ import UIKit
 
 extension UIImage {
     
+    /**
     func imageColorValue() {
         
         let bitmapInfo = CGBitmapInfo.byteOrderMask.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue
@@ -52,4 +53,6 @@ extension UIImage {
             }
         }
     }
+ 
+     */
 }
