@@ -29,4 +29,6 @@
 //字符串处理
 #import "NSString+VerificationString.h"
 
+#import "CGKit+SwiftBridgingHeader.h"
+
 #endif
