@@ -181,7 +181,7 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
     }
     
     //MARK:- 处理手势
-    func handlePanGestureRecognizer(_ panGestureRecognizer : UIPanGestureRecognizer) {
+    @objc func handlePanGestureRecognizer(_ panGestureRecognizer : UIPanGestureRecognizer) {
         
         let point = panGestureRecognizer.translation(in: self)
         
@@ -226,7 +226,7 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
     //MARK:- UIGestureRecognizerDelegate
     
     //MARK:- 刷新视图
-    func reloadData() {
+    @objc func reloadData() {
         
         if self.reloadDataMustCondition == false {
             return

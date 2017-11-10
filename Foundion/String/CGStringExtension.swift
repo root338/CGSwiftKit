@@ -10,13 +10,6 @@ import Foundation
 
 public extension String {
     
-    public var cg_lenght : Int {
-        get {
-            return self.characters.count
-        }
-    }
-    
-    
     public static func string(from number: Double) -> String {
         return ""
     }
