@@ -9,7 +9,7 @@
 import UIKit
 
 typealias CGBrowseFullScreenViewTuple = (index: Int, cell: CGBrowseFullScreenViewCell)
-private typealias CGBrowseFullScreenViewAideTuple   = (index: Int, cell: CGBrowseFullScreenViewCell, type: CGNumberOfIntType)
+private typealias CGBrowseFullScreenViewAideTuple   = (index: Int, cell: CGBrowseFullScreenViewCell, type: CGIntAdjacentNumberType)
 
 @objc protocol CGBrowseFullScreenViewDelegate : NSObjectProtocol {
     
@@ -118,7 +118,7 @@ class CGBrowseFullScreenView: UIView, UIGestureRecognizerDelegate {
         
         visiableCell.origin.setupOffset(x: contentOffset.x, y: 0)
         
-        var intType : CGNumberOfIntType?
+        var intType : CGIntAdjacentNumberType?
         
         let x       = visiableCell.xOrigin
         let maxX    = visiableCell.maxX
@@ -151,7 +151,7 @@ class CGBrowseFullScreenView: UIView, UIGestureRecognizerDelegate {
     }
     
     /// 设置辅助cell
-    fileprivate func setupAideCell(currentCellTuple: CGBrowseFullScreenViewTuple, type: CGNumberOfIntType, contentOffset: CGPoint) -> CGBrowseFullScreenViewAideTuple? {
+    fileprivate func setupAideCell(currentCellTuple: CGBrowseFullScreenViewTuple, type: CGIntAdjacentNumberType, contentOffset: CGPoint) -> CGBrowseFullScreenViewAideTuple? {
         
         let targetIndex = currentCellTuple.index.number(in: type, isCycle: isScrollLoop, minNumber: 0, maxNumber: totalCellsNumber)
         if targetIndex == nil {

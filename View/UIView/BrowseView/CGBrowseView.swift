@@ -14,7 +14,7 @@ import UIKit
 /// - Horizontal: 水平滑动
 /// - Vertical: 垂直滑动
 public enum CGBrowseScrollDirection : Int {
-    case Horizontal, Vertical
+    case horizontal, vertical
 }
 
 
@@ -24,9 +24,9 @@ public enum CGBrowseScrollDirection : Int {
 /// - CurrentIndex: 当前索引
 /// - NextIndex: 下一页索引
 public enum CGBrowseViewIndexType : Int {
-    case PreviousIndex  = -1
-    case CurrentIndex   = 0
-    case NextIndex      = 1
+    case previousIndex  = -1
+    case currentIndex   = 0
+    case nextIndex      = 1
 }
 
 @objc protocol CGBrowseViewDataSource : NSObjectProtocol {
@@ -48,12 +48,13 @@ public enum CGBrowseViewIndexType : Int {
     /// 设置 cell 的高度，在垂直滑动下回调
     @objc optional func browseContent(_ browseContent : CGBrowseView, heightForAt Index: Int) -> CGFloat
     
-    /// 设置 cell 与 cell 之间的间距
-//    @objc optional func browseContent(_ browseContent : CGBrowseView, cellSpacePreviousCellIndex: Int, nextCellIndex: Int) -> CGFloat
+//    /// 设置视图之间的间距是多少
+//    @objc optional func browseContent(_ browseContent : CGBrowseView, index1: Int, level1: Int, index2: Int, level2: Int) -> CGFloat
+    
 }
 
 /// 浏览视图
-open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
+open class CGBrowseView: UIView, /*UIGestureRecognizerDelegate,*/ CGBrowseScrollContentViewItemProtocol {
     
     //MARK:- 公共属性
     
@@ -87,14 +88,21 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
     }
     
     /// cell之间的最小间距，默认 0
-    var minimumInteritemSpacing : CGFloat = 0
+    var interitemSpacing : CGFloat = 0
     
     /// 是否可以循环滑动，默认
-    var isScrollLoop = true
+    var isScrollLoop : Bool {
+        didSet {
+            scrollContentViewItem.isScrollLoop  = isScrollLoop
+        }
+    }
     
     /// 浏览视图滑动的方向，默认水平滑动
-    var browseViewDirection = CGBrowseScrollDirection.Horizontal
-    
+    var scrollDirection = CGBrowseScrollDirection.horizontal {
+        didSet {
+            scrollContentViewItem.scrollDirection   = scrollDirection
+        }
+    }
     
     /// 加载滑动视图的内容视图
     let contentView = UIView.init()
@@ -108,15 +116,18 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
     fileprivate var offsetPoint    : CGPoint?
     
     /// 可见的 cell 数组
-    fileprivate var visibleBrowseCells : [Int : CGBrowseViewCell] = [:]
+    fileprivate var visibleBrowseCells : [Int : CGBrowseCellItem] = [:]
     /// 可见的 cell 的内容大小
     fileprivate var visibleBrowseContentSize = CGSize.zero
+    /// 可见的 cell 的内容坐标
+    fileprivate var visibleBrowseContentRect = CGRect.zero
+    
     /// 可见的 cell 索引数组
     fileprivate var visibleBrowseCellIndexs : [Int] = []
     /// 缓存的 cell 集合
-    fileprivate var cacheBrowseCells : [String : [CGBrowseViewCell]] = [:]
+    fileprivate var cacheBrowseCells : [String : [CGBrowseCellItem]] = [:]
     /// 当前手势滑动的偏移量
-    fileprivate var currentScrollContentOffset = CGPoint.zero
+    fileprivate var contentOffset = CGPoint.zero
     
     /// cell 加载的总数
     fileprivate var totalForCellsNumber : Int   = 0
@@ -132,6 +143,9 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
     /// 视图加载时设备的方向
     fileprivate var deviceOrientationFlag               = UIApplication.cg_currentDeviceDirection()
     
+    /// 子视图滑动区域
+    fileprivate var scrollContentViewItem : CGBrowseScrollContentViewItem
+    
     /// 调用 reloadData 进行 contentView 刷新时的必须条件
     fileprivate var reloadDataMustCondition : Bool {
         get {
@@ -145,10 +159,10 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
             
             //可见 cell 总的视图大小
             var visibleCellsContentSizeLessContentViewSize  = false
-            if self.browseViewDirection == .Horizontal {
+            if self.scrollDirection == .horizontal {
                 
                 visibleCellsContentSizeLessContentViewSize  = visibleBrowseContentSize.width < self.contentView.width
-            } else if self.browseViewDirection == .Vertical {
+            } else if self.scrollDirection == .vertical {
                 
                 visibleCellsContentSizeLessContentViewSize  = visibleBrowseContentSize.height < self.contentView.width
             }
@@ -165,9 +179,16 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
     //MARK:- 初始化
     override init(frame: CGRect) {
         
+        self.isScrollLoop   = false
+        
         pan = UIPanGestureRecognizer.init()
+        scrollContentViewItem   = CGBrowseScrollContentViewItem.init(scrollDirection: self.scrollDirection)
+        scrollContentViewItem.isScrollLoop  = self.isScrollLoop
         
         super.init(frame: frame)
+        
+        self.clipsToBounds              = true
+        scrollContentViewItem.delegate  = self
         
         pan.addTarget(self, action: #selector(handlePanGestureRecognizer(_ :)))
         self.addGestureRecognizer(pan)
@@ -192,7 +213,14 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
             self.offsetPoint   = point
         } else if state == .changed {
             
-            self.moveContentViewLayout(contentOffset: CGPoint.init(x: point.x - self.offsetPoint!.x, y: 0))
+            var contentOffset = CGPoint.zero
+            switch scrollDirection {
+            case .horizontal:
+                contentOffset.x = point.x - self.offsetPoint!.x
+            case .vertical:
+                contentOffset.y = point.y - self.offsetPoint!.y
+            }
+            self.moveContentViewLayout(contentOffset: contentOffset)
             self.offsetPoint   = point
         } else if state == .failed || state == .cancelled {
             
@@ -205,12 +233,12 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
     /// 手势移动时，调用
     func moveContentViewLayout(contentOffset: CGPoint) {
         
-        self.currentScrollContentOffset.x += contentOffset.x
-        self.currentScrollContentOffset.y += contentOffset.y
         
-        if self.browseViewDirection == .Horizontal {
-            
-        }
+        self.contentOffset.x += contentOffset.x
+        self.contentOffset.y += contentOffset.y
+        
+        scrollContentViewItem.contentOffset(contentOffset)
+        self.setupBrowseViewCells()
     }
     
     /// 手势正常结束时，调用
@@ -232,8 +260,9 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
             return
         }
         self.totalForCellsNumber    = self.dataSource!.totalNumberWithBrowseContent(self)
-        self.setupContentView()
-        self.currentScrollContentOffset = CGPoint.zero
+        
+        self.setupBrowseViewCells()
+        
         self.deviceOrientationFlag      = UIApplication.cg_currentDeviceDirection()
     }
     
@@ -246,90 +275,70 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
         }
     }
     
-    /// 设置 contentView 中的视图
-    func setupContentView() {
+    /// 计算当前可见区域可以显示的cell范围
+    ///
+    func setupBrowseViewCells() {
         
-        var index                   = self.currentStartIndex
-        var contentSize             = CGSize.zero
-        let interitemSpacing        = self.minimumInteritemSpacing
-        var tempVisibleBrowseCells  = [Int : CGBrowseViewCell]()
+        let contentViewRect     = self.contentView.bounds
         
-        repeat {
+        if contentViewRect.contains(scrollContentViewItem.visibleRect) == false {
             
-            let cell = self.createCell(cellIndex: index)
-            
-            if self.browseViewDirection == .Horizontal {
+            // 清除容器空间不包含的cell
+            while true {
                 
-                cell.origin         = CGPoint.init(x: contentSize.width, y: 0)
-                contentSize.width   += cell.width + interitemSpacing
-            }else if self.browseViewDirection == .Vertical {
+                var isBreakRunLoop  = true
+                if let shouldPopFirstCellItem = scrollContentViewItem.shouldPopFirstCell(visibleRect: contentViewRect) {
+                    if shouldPopFirstCellItem {
+                        _ = scrollContentViewItem.popFirstCell()
+                        isBreakRunLoop  = false
+                    }
+                }
                 
-                cell.origin         = CGPoint.init(x: 0, y: contentSize.height)
-                contentSize.height  += cell.height + interitemSpacing
-            }
-            
-            if cell.superview != self.contentView {
-                self.contentView.addSubview(cell)
-            }
-            tempVisibleBrowseCells.updateValue(cell, forKey: index)
-            self.visibleBrowseCells.removeValue(forKey: index)
-            
-            let nextIndex = index.number(in: .next, isCycle: isScrollLoop, minNumber: 0, maxNumber: totalForCellsNumber)
-            
-            if nextIndex == nil {
-                break
-            }
-            index   = nextIndex!
-            
-        } while (self.browseViewDirection == .Horizontal && contentSize.width < self.contentView.width) || (self.browseViewDirection == .Vertical && contentSize.height < self.contentView.height)
-        
-        for (_, value) in self.visibleBrowseCells {
-            if value.superview != nil {
-                value.removeFromSuperview()
+                if let shouldPopLastCellItem = scrollContentViewItem.shouldPopLastCell(visibleRect: contentViewRect) {
+                    if shouldPopLastCellItem {
+                        _ = scrollContentViewItem.popLastCell()
+                        isBreakRunLoop  = false
+                    }
+                }
+                
+                if isBreakRunLoop {
+                    break
+                }
             }
         }
-        self.visibleBrowseCells.removeAll()
-        self.visibleBrowseCells = tempVisibleBrowseCells
         
-        if self.browseViewDirection == .Horizontal {
-            contentSize.height  = self.contentView.height
-        }else if self.browseViewDirection == .Vertical {
-            contentSize.width   = self.contentView.width
-        }
-        
-        self.visibleBrowseContentSize   = contentSize
-    }
-    
-    func createCell(cellIndex : Int) -> CGBrowseViewCell {
-        
-        var view = visibleBrowseCells[cellIndex]
-        if view == nil {
+        if scrollContentViewItem.visibleRect.contains(contentViewRect) == false {
             
-            view    = self.dataSource!.browseContent(self, index: cellIndex)
-            visibleBrowseCells[cellIndex]   = view
-            visibleBrowseCellIndexs.append(cellIndex)
-        }
-        var viewSize = CGSize.zero
-        if self.browseViewDirection == .Horizontal {
-            
-            var width = self.delegate?.browseContent?(self, widthForAt: cellIndex)
-            if width == nil {
-                width   = self.cellWidth
+            // 当容器空间包含当前cell的可见空间时，加载需要填充的部分
+            while true {
+                
+                var isBreakRunLoop  = true
+                if  scrollContentViewItem.shouldPushFirstCell(visibleRect: contentViewRect, space: interitemSpacing) {
+                    
+                    if let cellItem = scrollContentViewItem.createFirstCellItem(isRunLoop: self.isScrollLoop, totalCount: self.totalForCellsNumber, space: interitemSpacing) {
+                        
+                        scrollContentViewItem.pushFirstCell(cellItem: cellItem)
+                        isBreakRunLoop  = false
+                    }
+                    // 创建不了 item 说明设置的 索引不可用
+                }
+                
+                if scrollContentViewItem.shouldPushLastCell(visibleRect: contentViewRect, space: interitemSpacing) {
+                    
+                    if let cellItem = scrollContentViewItem.createLastCellItem(isRunLoop: self.isScrollLoop, totalCount: self.totalForCellsNumber, space: interitemSpacing) {
+                        
+                        scrollContentViewItem.pushLastCell(cellItem: cellItem)
+                        isBreakRunLoop  = false
+                    }
+                    
+                    // 创建不了 item 说明设置的 索引不可用
+                }
+                
+                if isBreakRunLoop {
+                    break
+                }
             }
-            viewSize.width  = width!
-            viewSize.height = self.contentView.height
-        }else if self.browseViewDirection == .Vertical {
-            
-            var height  = self.delegate?.browseContent?(self, heightForAt: cellIndex)
-            if height == nil {
-                height = self.cellHeight
-            }
-            viewSize.width  = self.contentView.width
-            viewSize.height = height!
         }
-        
-        view?.size = viewSize
-        return view!
     }
     
     override open func layoutSubviews() {
@@ -340,13 +349,74 @@ open class CGBrowseView: UIView, UIGestureRecognizerDelegate {
             autoSetupCellWidthFlag  = true
             self.cellWidth  = self.contentView.width
         }
-        if self.disableSetupPrivateCellHeightFlag {
+        if self.disableSetupPrivateCellHeightFlag == false {
             autoSetupCellHeightFlag = true
             self.cellHeight = self.contentView.height
         }
         
         self.setReloadData()
     }
+    
+    //MARK:- CGBrowseScrollContentViewItemProtocol
+    
+    func didPush(browseCellItem: CGBrowseCellItem, pushType: CGBrowseItemPushOperateType, firstEndPoint: CGPoint?, lastStartPoint: CGPoint?) {
+        
+        var cellItemRect = CGRect.zero
+        switch self.scrollDirection {
+        case .horizontal:
+            if let cellWidth = self.delegate?.browseContent?(self, widthForAt: browseCellItem.identifierID.index) {
+                cellItemRect.size.width = cellWidth
+            }else {
+                cellItemRect.size.width = self.cellWidth
+            }
+            cellItemRect.size.height    = self.contentView.height
+        case .vertical:
+            
+            if let cellHeight = self.delegate?.browseContent?(self, heightForAt: browseCellItem.identifierID.index) {
+                cellItemRect.size.height    = cellHeight
+            }else {
+                cellItemRect.size.height    = self.cellHeight
+            }
+            cellItemRect.size.width         = self.contentView.width
+        }
+        
+        switch pushType {
+        case .first:
+            
+            if firstEndPoint != nil {
+                switch scrollDirection {
+                case .horizontal:
+                    cellItemRect.origin.x   = firstEndPoint!.x - cellItemRect.width - (browseCellItem.spaceWithNextCellItem ?? 0)
+                    
+                case .vertical:
+                    cellItemRect.origin.y   = firstEndPoint!.y - cellItemRect.height - (browseCellItem.spaceWithNextCellItem ?? 0)
+                }
+            }
+            
+        case .last:
+            
+            if lastStartPoint != nil {
+                switch scrollDirection {
+                case .horizontal:
+                    cellItemRect.origin.x   = lastStartPoint!.x + (browseCellItem.spaceWithPreviousCellItem ?? 0)
+                case .vertical:
+                    cellItemRect.origin.y   = lastStartPoint!.y + (browseCellItem.spaceWithPreviousCellItem ?? 0)
+                }
+            }
+        }
+        
+        browseCellItem.cellRect = cellItemRect
+        
+        if let cell = self.dataSource?.browseContent(self, index: browseCellItem.identifierID.index) {
+            
+            browseCellItem.cell = cell
+            cell.frame          = browseCellItem.cellRect!
+            self.contentView.addSubview(cell)
+        }
+    }
+    
+    func didPop(browseCellItem: CGBrowseCellItem, popType: CGBrowseItemPopOperateType) {
+        
+        browseCellItem.cell?.removeFromSuperview()
+    }
 }
-
-
