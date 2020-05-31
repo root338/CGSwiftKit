@@ -72,7 +72,7 @@ extension CGBrowseScrollContentViewItem {
     
     func targetCellItem(cellItem: CGBrowseCellItem, offset: Int) -> CGBrowseCellItem? {
         
-        if let index = visibleBrowseCellItems.index(of: cellItem), index + offset >= 0, index + offset < visibleBrowseCellItems.count {
+        if let index = visibleBrowseCellItems.firstIndex(of: cellItem), index + offset >= 0, index + offset < visibleBrowseCellItems.count {
             return visibleBrowseCellItems[index + offset]
         }
         return nil

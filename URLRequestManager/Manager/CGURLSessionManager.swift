@@ -23,7 +23,7 @@ class CGURLSessionManager: NSObject {
     //MARK:- private 变量
     private let session : URLSession
     private weak var sessionDelegateManager : CGURLSessionDelegateManager! {
-        return session.delegate as! CGURLSessionDelegateManager
+        return (session.delegate as! CGURLSessionDelegateManager)
     }
     
     //MARK:- fileprivate 变量

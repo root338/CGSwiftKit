@@ -10,7 +10,7 @@ import Foundation
 
 public extension String {
     
-    public static func string(from number: Double) -> String {
+    static func string(from number: Double) -> String {
         return ""
     }
     
